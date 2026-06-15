@@ -1,0 +1,17 @@
+services:
+  leather-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leather-custom-order
+    ports:
+      - "4173:4173"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - leather-net
+
+networks:
+  leather-net:
+    driver: bridge
