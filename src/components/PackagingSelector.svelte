@@ -65,8 +65,7 @@
         type="text"
         class="form-input"
         placeholder="请输入您的姓名"
-        value={$orderConfig.customerName}
-        on:input={(e) => orderConfig.update(c => ({ ...c, customerName: e.target.value }))}
+        bind:value={$orderConfig.customerName}
       />
     </div>
     <div class="form-group">
@@ -75,8 +74,7 @@
         type="tel"
         class="form-input"
         placeholder="请输入您的手机号"
-        value={$orderConfig.customerPhone}
-        on:input={(e) => orderConfig.update(c => ({ ...c, customerPhone: e.target.value }))}
+        bind:value={$orderConfig.customerPhone}
       />
     </div>
     <div class="form-group">
@@ -85,8 +83,7 @@
         class="form-input"
         rows="3"
         placeholder="例如：希望字更粗一些、送礼包装、特定日期取货等..."
-        value={$orderConfig.specialNote}
-        on:input={(e) => orderConfig.update(c => ({ ...c, specialNote: e.target.value }))}
+        bind:value={$orderConfig.specialNote}
       ></textarea>
     </div>
   </div>

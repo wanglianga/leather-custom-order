@@ -1,7 +1,8 @@
 <script>
   import { orders } from '../store/orderStore.js';
+  import { estimateCompletionDate, calcOrderPrice } from '../store/orderStore.js';
   import { leatherColors, hardwares, products, materialStock } from '../data/options.js';
-  import ProductPreview, { estimateCompletionDate, calcOrderPrice } from './ProductPreview.svelte';
+  import ProductPreview from './ProductPreview.svelte';
 
   let activeTab = 'orders';
   let selectedOrderId = null;

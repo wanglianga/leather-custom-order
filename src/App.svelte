@@ -4,6 +4,18 @@
   import StaffPage from './components/StaffPage.svelte';
 
   let view = 'customer';
+  let initialized = false;
+
+  function initView() {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('staff') || window.location.hash.includes('staff')) {
+        view = 'staff';
+      }
+    }
+    initialized = true;
+  }
+  initView();
 
   function switchView(v) {
     view = v;
@@ -11,8 +23,8 @@
   }
 </script>
 
-{#if typeof window !== 'undefined'}
-  {#if !new URLSearchParams(window.location.search).get('staff') && !window.location.hash.includes('staff') && view !== 'staff'}
+{#if initialized}
+  {#if view === 'customer'}
     <CustomerPage />
     <button class="view-switcher staff-entry" on:click={() => switchView('staff')}>
       🛠 切换到 店员工作台

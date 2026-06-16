@@ -2,9 +2,10 @@
   import {
     orderConfig, selectedProduct, selectedLeather,
     selectedTexture, selectedHardware, selectedFont, selectedDepth,
-    estimatedCompletion, totalPrice
+    estimatedCompletion, totalPrice,
+    estimateCompletionDate, calcOrderPrice
   } from '../store/orderStore.js';
-  import { engravingPositions, leatherColors } from '../data/options.js';
+  import { engravingPositions, leatherColors, hardwares, fonts, engravingDepths, products } from '../data/options.js';
 
   export let compact = false;
   export let order;
@@ -17,20 +18,20 @@
   }
 
   $: product = order
-    ? { id: config.productId, ...getProductInfo(config.productId) }
+    ? products.find(p => p.id === config.productId) || { name: '卡包' }
     : $selectedProduct;
   $: leather = order
     ? leatherColors.find(l => l.id === config.leatherColorId)
     : $selectedLeather;
   $: textureId = config.textureId;
   $: hardware = order
-    ? { hex: getHardwareHex(config.hardwareId) }
+    ? hardwares.find(h => h.id === config.hardwareId)
     : $selectedHardware;
   $: font = order
-    ? { css: getFontCss(config.engravingFontId) }
+    ? fonts.find(f => f.id === config.engravingFontId)
     : $selectedFont;
   $: depth = order
-    ? getDepthValue(config.engravingDepthId)
+    ? (engravingDepths.find(d => d.id === config.engravingDepthId)?.depth || 0.6)
     : $selectedDepth?.depth || 0.6;
 
   $: positions = engravingPositions[config.productId] || [];
@@ -39,37 +40,6 @@
   $: marginPx = config.engravingMargin * 0.8;
   $: engravingOpacity = 0.3 + depth * 0.4;
   $: engravingShadow = depth * 2;
-
-  function getProductInfo(id) {
-    const map = {
-      keychain: { name: '钥匙扣', basePrice: 168, days: 3, dimensions: '6cm x 3.5cm', maxChars: 8 },
-      cardholder: { name: '卡包', basePrice: 298, days: 5, dimensions: '10cm x 7.5cm', maxChars: 12 },
-      wallet: { name: '短夹', basePrice: 458, days: 7, dimensions: '11cm x 9cm', maxChars: 12 },
-      passport: { name: '护照夹', basePrice: 388, days: 6, dimensions: '14cm x 10cm', maxChars: 15 }
-    };
-    return map[id] || map.cardholder;
-  }
-
-  function getHardwareHex(id) {
-    const map = { gold: '#D4AF37', silver: '#C0C0C0', rose: '#B76E79', gunmetal: '#4A4A4A' };
-    return map[id] || '#D4AF37';
-  }
-
-  function getFontCss(id) {
-    const map = {
-      serif: "'Georgia', 'SimSun', serif",
-      sans: "'Helvetica Neue', 'PingFang SC', sans-serif",
-      script: "'Brush Script MT', 'Kaiti', cursive",
-      mono: "'Courier New', 'FangSong', monospace",
-      stamp: "'Impact', 'STHeiti', sans-serif"
-    };
-    return map[id] || map.serif;
-  }
-
-  function getDepthValue(id) {
-    const map = { light: 0.3, medium: 0.6, deep: 1.0 };
-    return map[id] || 0.6;
-  }
 
   $: texturePattern = getTexturePattern(textureId, leather?.hex || '#C4956A');
 
@@ -335,28 +305,6 @@
     </div>
   {/if}
 </div>
-
-<script context="module">
-  export function estimateCompletionDate(order) {
-    const days = { keychain: 3, cardholder: 5, wallet: 7, passport: 6 }[order.productId] || 5;
-    let extra = 0;
-    if (order.engravingText?.length) extra += 1;
-    if (order.textureId === 'croc') extra += 1;
-    const result = new Date(order.createdAt || order.orderDate || Date.now());
-    result.setDate(result.getDate() + days + extra);
-    return result;
-  }
-
-  export function calcOrderPrice(o) {
-    const bp = { keychain: 168, cardholder: 298, wallet: 458, passport: 388 }[o.productId] || 298;
-    const lp = { tan: 0, black: 0, burgundy: 30, navy: 30, green: 50, cognac: 40 }[o.leatherColorId] || 0;
-    const tp = { smooth: 0, grained: 0, pebbled: 0, suede: 0, croc: 80 }[o.textureId] || 0;
-    const gp = { none: 0, standard: 20, premium: 58 }[o.giftBoxId] || 0;
-    const pp = { store: 0, express: 15, samecity: 30 }[o.pickupMethodId] || 0;
-    const ep = Math.max(0, (o.engravingText?.length || 0) - 3) * 8;
-    return bp + lp + tp + gp + pp + ep;
-  }
-</script>
 
 <style>
   .product-preview {

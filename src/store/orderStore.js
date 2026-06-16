@@ -1,6 +1,41 @@
 import { writable, derived } from 'svelte/store';
 import { products, leatherColors, textures, hardwares, fonts, engravingDepths, giftBoxes, pickupMethods } from '../data/options.js';
 import { v4 as uuidv4 } from 'uuid';
+
+const PRODUCT_INFO = {
+  keychain: { name: '钥匙扣', basePrice: 168, days: 3, dimensions: '6cm x 3.5cm', maxChars: 8 },
+  cardholder: { name: '卡包', basePrice: 298, days: 5, dimensions: '10cm x 7.5cm', maxChars: 12 },
+  wallet: { name: '短夹', basePrice: 458, days: 7, dimensions: '11cm x 9cm', maxChars: 12 },
+  passport: { name: '护照夹', basePrice: 388, days: 6, dimensions: '14cm x 10cm', maxChars: 15 }
+};
+const LEATHER_PRICE = { tan: 0, black: 0, burgundy: 30, navy: 30, green: 50, cognac: 40 };
+const TEXTURE_PRICE = { smooth: 0, grained: 0, pebbled: 0, suede: 0, croc: 80 };
+const GIFTBOX_PRICE = { none: 0, standard: 20, premium: 58 };
+const PICKUP_PRICE = { store: 0, express: 15, samecity: 30 };
+
+export function calcOrderPrice(o) {
+  const bp = PRODUCT_INFO[o.productId]?.basePrice || 298;
+  const lp = LEATHER_PRICE[o.leatherColorId] ?? 0;
+  const tp = TEXTURE_PRICE[o.textureId] ?? 0;
+  const gp = GIFTBOX_PRICE[o.giftBoxId] ?? 0;
+  const pp = PICKUP_PRICE[o.pickupMethodId] ?? 0;
+  const ep = Math.max(0, (o.engravingText?.length || 0) - 3) * 8;
+  return bp + lp + tp + gp + pp + ep;
+}
+
+export function estimateCompletionDate(configOrOrder) {
+  const o = configOrOrder;
+  const baseDays = PRODUCT_INFO[o.productId]?.days || 5;
+  let extraDays = 0;
+  if (o.engravingText && o.engravingText.length > 0) extraDays += 1;
+  if (o.textureId === 'croc') extraDays += 1;
+  if (o.giftBoxId === 'premium') extraDays += 0.5;
+  const baseDate = new Date(o.createdAt || o.orderDate || Date.now());
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + Math.ceil(baseDays + extraDays));
+  return result;
+}
+
 function createInitialConfig() {
  const today = new Date();
  return {
@@ -30,34 +65,8 @@ export const selectedFont = derived(orderConfig, $c => fonts.find(f => f.id === 
 export const selectedDepth = derived(orderConfig, $c => engravingDepths.find(d => d.id === $c.engravingDepthId));
 export const selectedGiftBox = derived(orderConfig, $c => giftBoxes.find(g => g.id === $c.giftBoxId));
 export const selectedPickup = derived(orderConfig, $c => pickupMethods.find(p => p.id === $c.pickupMethodId));
-export const totalPrice = derived([orderConfig, selectedProduct, selectedLeather, selectedTexture, selectedGiftBox, selectedPickup], ([$c, $p, $l, $t, $g, $pk]) => {
- if (!$p)
- return 0;
- let total = $p.basePrice;
- total += ($l?.price || 0);
- total += ($t?.price || 0);
- total += ($g?.price || 0);
- total += ($pk?.price || 0);
- if ($c.engravingText && $c.engravingText.length > 0) {
- total += Math.max(0, $c.engravingText.length - 3) * 8;
- }
- return total;
-});
-export const estimatedCompletion = derived([orderConfig, selectedProduct], ([$c, $p]) => {
- if (!$p)
- return new Date();
- const baseDays = $p.days;
- let extraDays = 0;
- if ($c.engravingText && $c.engravingText.length > 0)
- extraDays += 1;
- if ($c.textureId === 'croc')
- extraDays += 1;
- if ($c.giftBoxId === 'premium')
- extraDays += 0.5;
- const result = new Date($c.orderDate);
- result.setDate(result.getDate() + Math.ceil(baseDays + extraDays));
- return result;
-});
+export const totalPrice = derived(orderConfig, $c => calcOrderPrice($c));
+export const estimatedCompletion = derived(orderConfig, $c => estimateCompletionDate($c));
 export const orders = writable([
  {
  id: 'ORD-' + Date.now(),

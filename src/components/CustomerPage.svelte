@@ -1,7 +1,7 @@
 <script>
   import {
     orderConfig, totalPrice, estimatedCompletion,
-    createOrder, resetOrderConfig
+    createOrder, resetOrderConfig, estimateCompletionDate
   } from '../store/orderStore.js';
   import ProductPreview from './ProductPreview.svelte';
   import ProductSelector from './ProductSelector.svelte';
@@ -210,7 +210,7 @@
               <span>电话：{orderResult.customerPhone}</span>
             </div>
             <div class="info-row">
-              <span class="highlight">预计 {formatCompletion(orderResult.createdAt ? new Date(new Date(orderResult.createdAt).getTime() + 5 * 86400000) : new Date())} 可完成</span>
+              <span class="highlight">预计 {formatCompletion(estimateCompletionDate(orderResult))} 可完成</span>
             </div>
           </div>
         </div>

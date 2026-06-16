@@ -7,13 +7,6 @@
   $: maxChars = $selectedProduct?.maxChars || 12;
   $: extraCost = Math.max(0, charsCount - 3) * 8;
 
-  function updateEngravingText(e) {
-    const text = e.target.value;
-    if (text.length <= maxChars) {
-      orderConfig.update(c => ({ ...c, engravingText: text }));
-    }
-  }
-
   function updateMargin(e) {
     orderConfig.update(c => ({ ...c, engravingMargin: parseInt(e.target.value) }));
   }
@@ -35,8 +28,7 @@
       type="text"
       class="form-input engraving-input"
       placeholder="输入您想刻的文字（中英文、数字均可）"
-      value={$orderConfig.engravingText}
-      on:input={updateEngravingText}
+      bind:value={$orderConfig.engravingText}
       maxlength={maxChars}
     />
     <div class="engraving-tip">
