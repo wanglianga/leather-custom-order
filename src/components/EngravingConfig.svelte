@@ -1,5 +1,5 @@
 <script>
-  import { orderConfig, selectedProduct, selectedFont, selectedDepth } from '../store/orderStore.js';
+  import { orderConfig, selectedProduct, selectedFont, selectedDepth, engravingBoundaryCheck, engravingCharValidation } from '../store/orderStore.js';
   import { fonts, engravingDepths, engravingPositions } from '../data/options.js';
 
   $: positions = engravingPositions[$orderConfig.productId] || [];
@@ -9,6 +9,40 @@
 
   function updateMargin(e) {
     orderConfig.update(c => ({ ...c, engravingMargin: parseInt(e.target.value) }));
+  }
+
+  function getSuggestionIcon(type) {
+    switch (type) {
+      case 'fontSize': return '🔤';
+      case 'position': return '📍';
+      case 'wrap': return '↩️';
+      case 'margin': return '📏';
+      default: return '💡';
+    }
+  }
+
+  function applySuggestion(suggestion) {
+    switch (suggestion.type) {
+      case 'position':
+        orderConfig.update(c => ({ ...c, engravingPositionId: suggestion.value }));
+        break;
+      case 'margin':
+        orderConfig.update(c => ({ ...c, engravingMargin: suggestion.value }));
+        break;
+      case 'wrap':
+        const text = $orderConfig.engravingText;
+        const mid = Math.ceil(text.length / 2);
+        let breakpoint = mid;
+        for (let i = mid; i < text.length; i++) {
+          if (text[i] === ' ') { breakpoint = i + 1; break; }
+        }
+        for (let i = mid; i > 0; i--) {
+          if (text[i] === ' ') { breakpoint = i + 1; break; }
+        }
+        const wrapped = text.slice(0, breakpoint) + '\n' + text.slice(breakpoint);
+        orderConfig.update(c => ({ ...c, engravingText: wrapped }));
+        break;
+    }
   }
 </script>
 
@@ -26,7 +60,7 @@
     </label>
     <input
       type="text"
-      class="form-input engraving-input"
+      class="form-input engraving-input {$engravingBoundaryCheck.isOverflowing || !$engravingCharValidation.isValid ? 'input-warning' : ''}"
       placeholder="输入您想刻的文字（中英文、数字均可）"
       bind:value={$orderConfig.engravingText}
       maxlength={maxChars}
@@ -38,6 +72,51 @@
     {#if charsCount > 3}
       <div class="extra-cost-badge badge badge-warm">
         超出字符 ({charsCount - 3}字)：+¥{extraCost}
+      </div>
+    {/if}
+
+    {#if $orderConfig.engravingText && (!$engravingCharValidation.isValid || $engravingCharValidation.warnings.length > 0)}
+      <div class="validation-alerts">
+        {#each $engravingCharValidation.issues as issue}
+          <div class="alert alert-danger">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text">{issue.message}</span>
+          </div>
+        {/each}
+        {#each $engravingCharValidation.warnings as warning}
+          <div class="alert alert-warning">
+            <span class="alert-icon">💡</span>
+            <span class="alert-text">{warning.message}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    {#if $orderConfig.engravingText && $engravingBoundaryCheck.isOverflowing}
+      <div class="boundary-alert">
+        <div class="alert alert-danger">
+          <span class="alert-icon">⚠️</span>
+          <span class="alert-text">
+            刻字内容超出安全边距！
+            {#if $engravingBoundaryCheck.overflowX > 0}
+              横向超出 {Math.round($engravingBoundaryCheck.overflowX / 2)}px
+            {/if}
+            {#if $engravingBoundaryCheck.overflowY > 0}
+              纵向超出 {Math.round($engravingBoundaryCheck.overflowY / 2)}px
+            {/if}
+          </span>
+        </div>
+        {#if $engravingBoundaryCheck.suggestions.length > 0}
+          <div class="suggestions-list">
+            <div class="suggestions-title">🔧 调整建议：</div>
+            {#each $engravingBoundaryCheck.suggestions as suggestion}
+              <button class="suggestion-btn" on:click={() => applySuggestion(suggestion)}>
+                <span class="suggestion-icon">{getSuggestionIcon(suggestion.type)}</span>
+                <span class="suggestion-text">{suggestion.label}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
@@ -333,5 +412,108 @@
     font-size: 11px;
     color: var(--color-text-light);
     margin-top: 6px;
+  }
+
+  .input-warning {
+    border-color: var(--color-danger) !important;
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  .validation-alerts {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .boundary-alert {
+    margin-top: 12px;
+  }
+
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .alert-danger {
+    background: #FFEBEE;
+    color: var(--color-danger);
+    border: 1px solid rgba(123, 45, 38, 0.2);
+  }
+
+  .alert-warning {
+    background: #FFF4E6;
+    color: #A0522D;
+    border: 1px solid rgba(160, 82, 45, 0.2);
+  }
+
+  .alert-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .alert-text {
+    flex: 1;
+  }
+
+  .suggestions-list {
+    margin-top: 12px;
+    background: #F8F4EF;
+    border-radius: var(--radius-md);
+    padding: 12px;
+  }
+
+  .suggestions-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 10px;
+  }
+
+  .suggestion-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--color-text);
+    text-align: left;
+    transition: all 0.2s ease;
+    margin-bottom: 6px;
+  }
+
+  .suggestion-btn:hover {
+    border-color: var(--color-primary);
+    background: #FFFBF5;
+    transform: translateX(4px);
+  }
+
+  .suggestion-btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .suggestion-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .suggestion-text {
+    flex: 1;
+    font-weight: 500;
   }
 </style>

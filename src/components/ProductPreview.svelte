@@ -1,11 +1,11 @@
 <script>
   import {
-    orderConfig, selectedProduct, selectedLeather,
+    orderConfig, selectedProduct, selectedLeather, selectedThread, selectedLeatherType,
     selectedTexture, selectedHardware, selectedFont, selectedDepth,
-    estimatedCompletion, totalPrice,
+    estimatedCompletion, totalPrice, engravingBoundaryCheck,
     estimateCompletionDate, calcOrderPrice
   } from '../store/orderStore.js';
-  import { engravingPositions, leatherColors, hardwares, fonts, engravingDepths, products } from '../data/options.js';
+  import { engravingPositions, leatherColors, hardwares, fonts, engravingDepths, products, threadColors } from '../data/options.js';
 
   export let compact = false;
   export let order;
@@ -41,7 +41,17 @@
   $: engravingOpacity = 0.3 + depth * 0.4;
   $: engravingShadow = depth * 2;
 
+  $: threadColor = order
+    ? threadColors.find(t => t.id === config.threadColorId)?.hex || '#D4B896'
+    : $selectedThread?.hex || '#D4B896';
+
   $: texturePattern = getTexturePattern(textureId, leather?.hex || '#C4956A');
+
+  $: boundaryCheck = order ? null : $engravingBoundaryCheck;
+  $: isOverflowing = boundaryCheck?.isOverflowing || false;
+
+  $: showGiftBox = config.giftBoxId !== 'none' && !compact;
+  $: giftBoxStyle = getGiftBoxStyle(config.giftBoxId);
 
   function getTexturePattern(id, baseColor) {
     const darker = adjustHex(baseColor, -20);
@@ -79,6 +89,26 @@
     const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
     const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+  }
+
+  function getGiftBoxStyle(id) {
+    if (id === 'premium') {
+      return {
+        boxColor: '#8B4513',
+        ribbonColor: '#D4AF37',
+        innerColor: '#FFF8EC',
+        shadow: '0 8px 32px rgba(139, 69, 19, 0.3)'
+      };
+    }
+    if (id === 'standard') {
+      return {
+        boxColor: '#8B7355',
+        ribbonColor: '#C4956A',
+        innerColor: '#FAF7F2',
+        shadow: '0 4px 20px rgba(139, 115, 85, 0.25)'
+      };
+    }
+    return null;
   }
 
   $: isBack = position?.isBack;
@@ -123,6 +153,7 @@
                 fill={leather?.hex || '#C4956A'}
                 style="background: {texturePattern};"
                 data-texture-fill/>
+          <rect x="115" y="105" width="170" height="110" rx="14" fill="none" stroke={threadColor} stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
           <rect x="115" y="105" width="170" height="110" rx="14" fill="url(#edgeGloss)"/>
           <circle cx="200" cy="80" r="14" fill={hardware?.hex || '#D4AF37'} stroke="#00000011" stroke-width="1"/>
           <circle cx="200" cy="80" r="6" fill="none" stroke="#FFFFFF66" stroke-width="1.5"/>
@@ -133,7 +164,12 @@
           <g transform="translate({115 + 85 * position.x / 100}, {105 + 55 * position.y / 100})">
             <rect x="-{config.engravingText.length * 7 + marginPx}" y="-{14 + marginPx}"
                   width="{config.engravingText.length * 14 + marginPx * 2}" height="{28 + marginPx * 2}"
-                  fill="none" stroke="#00000015" stroke-width="1" stroke-dasharray="3 2" rx="3"/>
+                  fill="none" stroke={isOverflowing ? '#E53935' : '#00000015'} stroke-width={isOverflowing ? '2' : '1'} stroke-dasharray="3 2" rx="3"/>
+            {#if isOverflowing}
+              <rect x="-{config.engravingText.length * 7 + marginPx - 5}" y="-{14 + marginPx - 5}"
+                    width="{config.engravingText.length * 14 + marginPx * 2 + 10}" height="{28 + marginPx * 2 + 10}"
+                    fill="none" stroke="#E53935" stroke-width="1" stroke-dasharray="2 4" rx="4" opacity="0.6"/>
+            {/if}
             <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
                   font-family={font?.css}
                   font-size="{16 + depth * 4}"
@@ -151,8 +187,10 @@
                 fill={leather?.hex || '#C4956A'}
                 style="background: {texturePattern};"
                 data-texture-fill/>
+          <rect x="75" y="95" width="250" height="150" rx="10" fill="none" stroke={threadColor} stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
           <rect x="75" y="95" width="250" height="150" rx="10" fill="url(#edgeGloss)"/>
           <rect x="90" y="110" width="220" height="10" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.5"/>
+          <rect x="90" y="110" width="220" height="10" rx="2" fill="none" stroke={threadColor} stroke-width="1" opacity="0.5"/>
           <rect x="90" y="130" width="220" height="10" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.5"/>
           <rect x="90" y="150" width="220" height="10" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.5"/>
           <rect x="90" y="170" width="220" height="10" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.3"/>
@@ -161,7 +199,12 @@
           <g transform="translate({75 + 125 * position.x / 100}, {95 + 75 * position.y / 100})">
             <rect x="-{config.engravingText.length * 8 + marginPx}" y="-{16 + marginPx}"
                   width="{config.engravingText.length * 16 + marginPx * 2}" height="{32 + marginPx * 2}"
-                  fill="none" stroke="#00000015" stroke-width="1" stroke-dasharray="3 2" rx="4"/>
+                  fill="none" stroke={isOverflowing ? '#E53935' : '#00000015'} stroke-width={isOverflowing ? '2' : '1'} stroke-dasharray="3 2" rx="4"/>
+            {#if isOverflowing}
+              <rect x="-{config.engravingText.length * 8 + marginPx - 5}" y="-{16 + marginPx - 5}"
+                    width="{config.engravingText.length * 16 + marginPx * 2 + 10}" height="{32 + marginPx * 2 + 10}"
+                    fill="none" stroke="#E53935" stroke-width="1" stroke-dasharray="2 4" rx="4" opacity="0.6"/>
+            {/if}
             <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
                   font-family={font?.css}
                   font-size="{20 + depth * 5}"
@@ -190,22 +233,31 @@
                 fill={leather?.hex || '#C4956A'}
                 style="background: {texturePattern};"
                 data-texture-fill/>
+          <rect x="65" y="75" width="270" height="190" rx="12" fill="none" stroke={threadColor} stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
           <rect x="65" y="75" width="270" height="190" rx="12" fill="url(#edgeGloss)"/>
-          <line x1="200" y1="75" x2="200" y2="265" stroke="#00000022" stroke-width="1"/>
+          <line x1="200" y1="75" x2="200" y2="265" stroke={threadColor} stroke-width="1.5" opacity="0.6"/>
           <rect x="85" y="95" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
+          <rect x="85" y="95" width="100" height="8" rx="2" fill="none" stroke={threadColor} stroke-width="1" opacity="0.5"/>
           <rect x="85" y="115" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
           <rect x="85" y="135" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
           <rect x="215" y="95" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
+          <rect x="215" y="95" width="100" height="8" rx="2" fill="none" stroke={threadColor} stroke-width="1" opacity="0.5"/>
           <rect x="215" y="115" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
           <rect x="215" y="135" width="100" height="8" rx="2" fill={adjustHex(leather?.hex || '#C4956A', -25)} opacity="0.45"/>
           <rect x="85" y="200" width="230" height="30" rx="6" fill={adjustHex(leather?.hex || '#C4956A', -15)} opacity="0.3"/>
+          <rect x="85" y="200" width="230" height="30" rx="6" fill="none" stroke={threadColor} stroke-width="1" opacity="0.5"/>
           <circle cx="260" cy="245" r="6" fill={hardware?.hex || '#D4AF37'}/>
         </g>
         {#if config.engravingText && !isInside}
           <g transform="translate({65 + 135 * position.x / 100}, {75 + 95 * position.y / 100})">
             <rect x="-{config.engravingText.length * 7 + marginPx}" y="-{14 + marginPx}"
                   width="{config.engravingText.length * 14 + marginPx * 2}" height="{28 + marginPx * 2}"
-                  fill="none" stroke="#00000015" stroke-width="1" stroke-dasharray="3 2" rx="4"/>
+                  fill="none" stroke={isOverflowing ? '#E53935' : '#00000015'} stroke-width={isOverflowing ? '2' : '1'} stroke-dasharray="3 2" rx="4"/>
+            {#if isOverflowing}
+              <rect x="-{config.engravingText.length * 7 + marginPx - 5}" y="-{14 + marginPx - 5}"
+                    width="{config.engravingText.length * 14 + marginPx * 2 + 10}" height="{28 + marginPx * 2 + 10}"
+                    fill="none" stroke="#E53935" stroke-width="1" stroke-dasharray="2 4" rx="4" opacity="0.6"/>
+            {/if}
             <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
                   font-family={font?.css}
                   font-size="{18 + depth * 4}"
@@ -235,18 +287,25 @@
                 fill={leather?.hex || '#C4956A'}
                 style="background: {texturePattern};"
                 data-texture-fill/>
+          <rect x="60" y="55" width="280" height="230" rx="8" fill="none" stroke={threadColor} stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
           <rect x="60" y="55" width="280" height="230" rx="8" fill="url(#edgeGloss)"/>
-          <rect x="60" y="55" width="4" height="230" fill="#00000022"/>
+          <rect x="60" y="55" width="4" height="230" fill={threadColor} opacity="0.7"/>
           <text x="200" y="105" text-anchor="middle" font-size="14" fill="#00000033" font-weight="bold" letter-spacing="2">PASSPORT</text>
           <circle cx="200" cy="145" r="26" fill="none" stroke="#00000022" stroke-width="2"/>
           <text x="200" y="150" text-anchor="middle" font-size="20" fill="#00000022">📘</text>
           <rect x="80" y="230" width="100" height="40" rx="4" fill={adjustHex(leather?.hex || '#C4956A', -20)} opacity="0.3"/>
+          <rect x="80" y="230" width="100" height="40" rx="4" fill="none" stroke={threadColor} stroke-width="1" opacity="0.5"/>
         </g>
         {#if config.engravingText && !isInside && !isSpine}
           <g transform="translate({60 + 140 * position.x / 100}, {55 + 115 * position.y / 100})">
             <rect x="-{config.engravingText.length * 8 + marginPx}" y="-{16 + marginPx}"
                   width="{config.engravingText.length * 16 + marginPx * 2}" height="{32 + marginPx * 2}"
-                  fill="none" stroke="#00000015" stroke-width="1" stroke-dasharray="3 2" rx="4"/>
+                  fill="none" stroke={isOverflowing ? '#E53935' : '#00000015'} stroke-width={isOverflowing ? '2' : '1'} stroke-dasharray="3 2" rx="4"/>
+            {#if isOverflowing}
+              <rect x="-{config.engravingText.length * 8 + marginPx - 5}" y="-{16 + marginPx - 5}"
+                    width="{config.engravingText.length * 16 + marginPx * 2 + 10}" height="{32 + marginPx * 2 + 10}"
+                    fill="none" stroke="#E53935" stroke-width="1" stroke-dasharray="2 4" rx="4" opacity="0.6"/>
+            {/if}
             <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
                   font-family={font?.css}
                   font-size="{20 + depth * 5}"
@@ -285,10 +344,46 @@
     {#if !config.engravingText}
       <div class="no-engraving-hint">💡 在下方输入刻字内容查看实时效果</div>
     {/if}
+
+    {#if showGiftBox && giftBoxStyle}
+      <div class="gift-box-preview" style="background: {giftBoxStyle.boxColor}; box-shadow: {giftBoxStyle.shadow};">
+        <div class="gift-box-ribbon" style="background: {giftBoxStyle.ribbonColor};"></div>
+        <div class="gift-box-ribbon-h" style="background: {giftBoxStyle.ribbonColor};"></div>
+        <div class="gift-box-inner" style="background: {giftBoxStyle.innerColor};"></div>
+        <span class="gift-box-label">{config.giftBoxId === 'premium' ? '豪华礼盒' : '标准礼盒'}</span>
+      </div>
+    {/if}
   </div>
 
   {#if !compact}
     <div class="preview-info">
+      {#if $selectedLeatherType}
+        <div class="info-row">
+          <span class="info-label">皮革类型</span>
+          <span class="info-value">
+            <span class="material-dot" style="background: {leather?.hex || '#C4956A'}"></span>
+            {$selectedLeatherType.name} · {leather?.name}
+          </span>
+        </div>
+      {/if}
+      {#if $selectedThread}
+        <div class="info-row">
+          <span class="info-label">缝线颜色</span>
+          <span class="info-value">
+            <span class="material-dot" style="background: {$selectedThread.hex}"></span>
+            {$selectedThread.name}
+          </span>
+        </div>
+      {/if}
+      {#if $selectedHardware}
+        <div class="info-row">
+          <span class="info-label">五金配件</span>
+          <span class="info-value">
+            <span class="material-dot" style="background: {$selectedHardware.hex}"></span>
+            {$selectedHardware.name}
+          </span>
+        </div>
+      {/if}
       <div class="info-row">
         <span class="info-label">预计完工</span>
         <span class="info-value highlight">
@@ -431,6 +526,71 @@
     font-size: 22px;
     font-weight: 700;
     color: var(--color-primary);
+  }
+
+  .material-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .gift-box-preview {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 60px;
+    height: 50px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .gift-box-inner {
+    width: 48px;
+    height: 38px;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .gift-box-ribbon {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  .gift-box-ribbon-h {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .gift-box-label {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: var(--color-text-light);
+    font-weight: 500;
+  }
+
+  .preview-stage {
+    padding-bottom: 36px;
   }
 
   @media (max-width: 767px) {

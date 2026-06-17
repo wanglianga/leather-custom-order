@@ -1,29 +1,128 @@
 <script>
-  import { orderConfig } from '../store/orderStore.js';
-  import { leatherColors, textures } from '../data/options.js';
+  import { orderConfig, materialAvailability, selectedLeatherType, colorCombinationTip } from '../store/orderStore.js';
+  import { leatherColors, textures, leatherTypes, materialStock, soldOutAlternatives, leatherColors as allLeatherColors } from '../data/options.js';
+
+  $: groupedLeathers = leatherTypes.map(type => ({
+    ...type,
+    colors: leatherColors.filter(c => c.type === type.id)
+  }));
+
+  function getLeatherStock(leatherId) {
+    return materialStock.leather[leatherId];
+  }
+
+  function getLeatherAlternatives(leatherId) {
+    return soldOutAlternatives.leather[leatherId];
+  }
+
+  function selectAlternative(altId) {
+    orderConfig.update(c => ({ ...c, leatherColorId: altId }));
+  }
 </script>
 
 <div class="leather-selector">
-  <h3 class="section-title">皮革颜色</h3>
-  <div class="color-grid">
-    {#each leatherColors as color}
-      <div
-        class="color-swatch {$orderConfig.leatherColorId === color.id ? 'selected' : ''}"
-        on:click={() => orderConfig.update(c => ({ ...c, leatherColorId: color.id }))}
-        title="{color.name} {color.price > 0 ? '+¥' + color.price : ''}"
-      >
-        <div class="color-circle" style="background: {color.hex}">
-          {#if color.id === 'green'}
-            <div class="texture-overlay" style="background: repeating-linear-gradient(45deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);"></div>
-          {/if}
-        </div>
-        <div class="color-name">{color.name}</div>
-        {#if color.price > 0}
-          <div class="color-price">+¥{color.price}</div>
-        {/if}
+  {#each groupedLeathers as typeGroup}
+    <div class="leather-type-section">
+      <div class="leather-type-header">
+        <h4 class="leather-type-title">{typeGroup.name}</h4>
+        <span class="leather-type-desc">{typeGroup.desc}</span>
       </div>
-    {/each}
-  </div>
+      {#if typeGroup.colorVariation}
+        <div class="leather-type-note">
+          <span class="note-icon">🎨</span>
+          <span class="note-text">{typeGroup.colorVariation}</span>
+        </div>
+      {/if}
+      {#if typeGroup.extraDays > 0}
+        <div class="leather-type-note warning">
+          <span class="note-icon">⏱</span>
+          <span class="note-text">需额外 {typeGroup.extraDays} 天制作时间</span>
+        </div>
+      {/if}
+      <div class="color-grid">
+        {#each typeGroup.colors as color}
+          {@const stock = getLeatherStock(color.id)}
+          {@const soldOut = stock?.soldOut}
+          {@const alternatives = getLeatherAlternatives(color.id)}
+          <div
+            class="color-swatch {$orderConfig.leatherColorId === color.id ? 'selected' : ''} {soldOut ? 'sold-out' : ''}"
+            on:click={() => !soldOut && orderConfig.update(c => ({ ...c, leatherColorId: color.id }))}
+            title="{color.name} {color.price > 0 ? '+¥' + color.price : ''} {soldOut ? '(已售罄)' : ''}"
+          >
+            <div class="color-circle" style="background: {color.hex}">
+              {#if color.id === 'green'}
+                <div class="texture-overlay" style="background: repeating-linear-gradient(45deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);"></div>
+              {/if}
+              {#if soldOut}
+                <div class="sold-out-overlay">
+                  <span class="sold-out-text">售罄</span>
+                </div>
+              {/if}
+            </div>
+            <div class="color-name">{color.name}</div>
+            {#if color.price > 0}
+              <div class="color-price">+¥{color.price}</div>
+            {/if}
+            {#if stock && !soldOut}
+              <div class="stock-indicator">
+                <span class="stock-dot {stock.sheet < 5 ? 'low' : ''}"></span>
+                <span class="stock-text">{stock.sheet} 张</span>
+              </div>
+            {/if}
+          </div>
+          {#if soldOut && $orderConfig.leatherColorId === color.id && alternatives}
+            <div class="alternative-panel" colspan="3">
+              <div class="alternative-header">
+                <span class="alternative-icon">🔄</span>
+                <span class="alternative-title">该颜色已售罄，推荐以下替代：</span>
+              </div>
+              {#if alternatives.colorDiff}
+                <div class="alternative-note">
+                  <span class="note-icon">🎨</span>
+                  <span class="note-text">{alternatives.colorDiff}</span>
+                </div>
+              {/if}
+              {#if alternatives.delayDays > 0}
+                <div class="alternative-note warning">
+                  <span class="note-icon">⏱</span>
+                  <span class="note-text">选择替代材料将增加 {alternatives.delayDays} 天制作时间</span>
+                </div>
+              {/if}
+              <div class="alternative-buttons">
+                {#each alternatives.alternatives as altId}
+                  {@const altColor = allLeatherColors.find(c => c.id === altId)}
+                  {#if altColor}
+                    <button class="alternative-btn" on:click={() => selectAlternative(altId)}>
+                      <span class="alt-color-dot" style="background: {altColor.hex}"></span>
+                      <span class="alt-color-name">{altColor.name}</span>
+                      {#if altColor.price > 0}
+                        <span class="alt-color-price">+¥{altColor.price}</span>
+                      {/if}
+                    </button>
+                  {/if}
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {/each}
+      </div>
+    </div>
+  {/each}
+
+  {#if $colorCombinationTip}
+    <div class="combination-tip">
+      <div class="tip-header">
+        <span class="tip-icon">⭐</span>
+        <span class="tip-title">搭配推荐</span>
+        <div class="tip-rating">
+          {#each { length: $colorCombinationTip.rating } as _, i}
+            <span class="star">★</span>
+          {/each}
+        </div>
+      </div>
+      <p class="tip-text">{$colorCombinationTip.tip}</p>
+    </div>
+  {/if}
 
   <h3 class="section-title" style="margin-top: 24px;">皮革纹理</h3>
   <div class="texture-grid">
@@ -206,5 +305,243 @@
   .texture-desc {
     font-size: 12px;
     color: var(--color-text-light);
+  }
+
+  .leather-type-section {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .leather-type-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .leather-type-header {
+    margin-bottom: 12px;
+  }
+
+  .leather-type-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 4px;
+  }
+
+  .leather-type-desc {
+    font-size: 12px;
+    color: var(--color-text-light);
+    display: block;
+  }
+
+  .leather-type-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #F0F7F0;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--color-success);
+    margin-bottom: 12px;
+  }
+
+  .leather-type-note.warning {
+    background: #FFF4E6;
+    color: #A0522D;
+  }
+
+  .note-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .note-text {
+    flex: 1;
+  }
+
+  .color-swatch.sold-out {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .color-swatch.sold-out:hover {
+    transform: none;
+    background: transparent;
+  }
+
+  .sold-out-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .sold-out-text {
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    transform: rotate(-15deg);
+  }
+
+  .stock-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .stock-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+  }
+
+  .stock-dot.low {
+    background: #FF9800;
+    animation: pulse 1.5s infinite;
+  }
+
+  .stock-text {
+    font-size: 10px;
+    color: var(--color-text-light);
+  }
+
+  .alternative-panel {
+    grid-column: 1 / -1;
+    background: #FFF4E6;
+    border: 1px solid rgba(160, 82, 45, 0.3);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin: 4px 0 12px;
+  }
+
+  .alternative-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .alternative-icon {
+    font-size: 18px;
+  }
+
+  .alternative-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #A0522D;
+  }
+
+  .alternative-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    color: var(--color-text-light);
+    margin-bottom: 8px;
+  }
+
+  .alternative-note.warning {
+    background: #FFEBEE;
+    color: var(--color-danger);
+  }
+
+  .alternative-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .alternative-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--color-text);
+    transition: all 0.2s ease;
+  }
+
+  .alternative-btn:hover {
+    border-color: var(--color-primary);
+    background: #FFFBF5;
+    transform: translateY(-1px);
+  }
+
+  .alt-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .alt-color-name {
+    font-weight: 500;
+  }
+
+  .alt-color-price {
+    color: var(--color-primary);
+    font-size: 11px;
+  }
+
+  .combination-tip {
+    background: linear-gradient(135deg, #FFF8EC, #FFFBF5);
+    border: 1px solid var(--color-secondary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-top: 16px;
+  }
+
+  .tip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tip-icon {
+    font-size: 18px;
+  }
+
+  .tip-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    flex: 1;
+  }
+
+  .tip-rating {
+    display: flex;
+    gap: 2px;
+  }
+
+  .star {
+    color: #FFD700;
+    font-size: 14px;
+  }
+
+  .tip-text {
+    font-size: 13px;
+    color: var(--color-text-light);
+    line-height: 1.5;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 </style>

@@ -1,7 +1,8 @@
 <script>
   import {
     orderConfig, totalPrice, estimatedCompletion,
-    createOrder, resetOrderConfig, estimateCompletionDate
+    createOrder, resetOrderConfig, estimateCompletionDate,
+    engravingBoundaryCheck, engravingCharValidation, materialAvailability
   } from '../store/orderStore.js';
   import ProductPreview from './ProductPreview.svelte';
   import ProductSelector from './ProductSelector.svelte';
@@ -24,15 +25,62 @@
     { id: 3, title: '包装' }
   ];
 
+  let engravingWarnings = [];
+  let materialWarnings = [];
+
   function handleSubmit() {
     if (!isValid) {
       alert('请填写您的姓名和手机号');
       return;
     }
+
+    engravingWarnings = [];
+    materialWarnings = [];
+
+    if ($orderConfig.engravingText) {
+      if ($engravingBoundaryCheck.isOverflowing) {
+        engravingWarnings.push({
+          type: 'error',
+          message: '刻字内容超出安全边距，请调整字体大小、位置或拆行'
+        });
+      }
+      if (!$engravingCharValidation.isValid) {
+        engravingWarnings.push({
+          type: 'error',
+          message: '刻字包含不适合压印的字符，请修改后再提交'
+        });
+      }
+      if ($engravingCharValidation.warnings.length > 0) {
+        engravingWarnings.push({
+          type: 'warning',
+          message: '部分特殊字符压印效果可能不清晰，建议替换为常规字符'
+        });
+      }
+    }
+
+    if (!$materialAvailability.allAvailable) {
+      const unavailable = [];
+      if ($materialAvailability.leather.soldOut) unavailable.push('皮革');
+      if ($materialAvailability.hardware.soldOut) unavailable.push('五金');
+      if ($materialAvailability.thread.soldOut) unavailable.push('缝线');
+      materialWarnings.push({
+        type: 'error',
+        message: `${unavailable.join('、')} 材料已售罄，请返回选择替代材料`
+      });
+    }
+
     showConfirmModal = true;
   }
 
+  $: hasEngravingErrors = engravingWarnings.some(w => w.type === 'error');
+  $: hasMaterialErrors = materialWarnings.some(w => w.type === 'error');
+  $: canSubmit = !hasEngravingErrors && !hasMaterialErrors;
+
   function confirmOrder() {
+    if (!canSubmit) {
+      alert('请先修正刻字或材料问题后再提交订单');
+      return;
+    }
     orderResult = createOrder($orderConfig);
     showConfirmModal = false;
     showSuccessModal = true;
@@ -146,6 +194,22 @@
           <button class="modal-close" on:click={() => showConfirmModal = false}>✕</button>
         </div>
         <div class="modal-body">
+          {#if engravingWarnings.length > 0 || materialWarnings.length > 0}
+            <div class="order-warnings">
+              {#each engravingWarnings as warning}
+                <div class="alert {warning.type === 'error' ? 'alert-danger' : 'alert-warning'}">
+                  <span class="alert-icon">{warning.type === 'error' ? '⚠️' : '💡'}</span>
+                  <span class="alert-text">{warning.message}</span>
+                </div>
+              {/each}
+              {#each materialWarnings as warning}
+                <div class="alert {warning.type === 'error' ? 'alert-danger' : 'alert-warning'}">
+                  <span class="alert-icon">{warning.type === 'error' ? '⚠️' : '💡'}</span>
+                  <span class="alert-text">{warning.message}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
           <div class="confirm-preview">
             <ProductPreview compact={true} />
           </div>
@@ -185,8 +249,8 @@
           <button class="btn-secondary" on:click={() => showConfirmModal = false}>
             返回修改
           </button>
-          <button class="btn-primary" on:click={confirmOrder}>
-            ✓ 确认提交
+          <button class="btn-primary" on:click={confirmOrder} disabled={!canSubmit}>
+            {canSubmit ? '✓ 确认提交' : '⚠️ 请先修正问题'}
           </button>
         </div>
       </div>
@@ -574,6 +638,45 @@
     background: #FFF4E6;
     border-radius: 8px;
     line-height: 1.6;
+  }
+
+  .order-warnings {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .alert-danger {
+    background: #FFEBEE;
+    color: var(--color-danger);
+    border: 1px solid rgba(123, 45, 38, 0.2);
+  }
+
+  .alert-warning {
+    background: #FFF4E6;
+    color: #A0522D;
+    border: 1px solid rgba(160, 82, 45, 0.2);
+  }
+
+  .alert-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .alert-text {
+    flex: 1;
+    font-weight: 500;
   }
 
   .modal-footer {
