@@ -1,7 +1,7 @@
 <script>
   import { orders } from '../store/orderStore.js';
   import { estimateCompletionDate, calcOrderPrice } from '../store/orderStore.js';
-  import { leatherColors, hardwares, products, materialStock } from '../data/options.js';
+  import { leatherColors, hardwares, products, materialStock, engravingPositions, threadColors } from '../data/options.js';
   import ProductPreview from './ProductPreview.svelte';
 
   let activeTab = 'orders';
@@ -37,6 +37,15 @@
   const textureNameMap = { smooth: '平纹', grained: '荔枝纹', pebbled: '卵石纹', suede: '麂皮绒', croc: '鳄鱼纹' };
   const boxNameMap = { none: '简易', standard: '标准', premium: '豪华' };
   const pickupNameMap = { store: '自提', express: '快递', samecity: '闪送' };
+  const threadNameMap = Object.fromEntries(threadColors.map(t => [t.id, t.name]));
+  const threadColorMap = Object.fromEntries(threadColors.map(t => [t.id, t.hex]));
+
+  function getPositionName(productId, positionId) {
+    const positions = engravingPositions[productId] || [];
+    return positions.find(p => p.id === positionId)?.name || positionId;
+  }
+  function getThreadName(id) { return threadNameMap[id] || id; }
+  function getThreadColor(id) { return threadColorMap[id] || '#D4B896'; }
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -336,8 +345,19 @@
                         <span class="v">{{light:'浅',medium:'中',deep:'深'}[selectedOrder.engravingDepthId] || '中'}</span>
                       </div>
                       <div class="info-pair">
+                        <span class="k">刻字位置</span>
+                        <span class="v">{getPositionName(selectedOrder.productId, selectedOrder.engravingPositionId) || '居中'}</span>
+                      </div>
+                      <div class="info-pair">
                         <span class="k">边距</span>
                         <span class="v">{selectedOrder.engravingMargin || 10}mm</span>
+                      </div>
+                      <div class="info-pair">
+                        <span class="k">缝线颜色</span>
+                        <span class="v">
+                          <span class="color-dot" style="background: {getThreadColor(selectedOrder.threadColorId)};"></span>
+                          {getThreadName(selectedOrder.threadColorId) || '米色'}
+                        </span>
                       </div>
                     </div>
                   {:else}
@@ -987,6 +1007,17 @@
   .info-pair .v {
     font-size: 13px;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
   }
 
   .info-pair .v.price {

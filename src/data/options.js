@@ -118,13 +118,13 @@ export const materialStock = {
     black: { sheet: 18, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: false },
     burgundy: { sheet: 8, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: false },
     navy: { sheet: 10, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: false },
-    green: { sheet: 5, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: false },
+    green: { sheet: 0, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: true },
     cognac: { sheet: 6, unit: '张', perProduct: { keychain: 0.05, cardholder: 0.1, wallet: 0.2, passport: 0.15 }, soldOut: false }
   },
   hardware: {
     gold: { count: 80, unit: '套', soldOut: false },
     silver: { count: 120, unit: '套', soldOut: false },
-    rose: { count: 45, unit: '套', soldOut: false },
+    rose: { count: 0, unit: '套', soldOut: true },
     gunmetal: { count: 60, unit: '套', soldOut: false }
   },
   thread: {
@@ -133,7 +133,7 @@ export const materialStock = {
     brown: { spool: 10, unit: '卷', soldOut: false },
     navy: { spool: 6, unit: '卷', soldOut: false },
     crimson: { spool: 8, unit: '卷', soldOut: false },
-    gold: { spool: 3, unit: '卷', soldOut: false }
+    gold: { spool: 0, unit: '卷', soldOut: true }
   }
 }
 

@@ -28,7 +28,7 @@
       {@const alternatives = soldOutAlternatives.hardware[hw.id]}
       <div
         class="option-card hardware-card {$orderConfig.hardwareId === hw.id ? 'selected' : ''} {soldOut ? 'sold-out' : ''}"
-        on:click={() => !soldOut && orderConfig.update(c => ({ ...c, hardwareId: hw.id }))}
+        on:click={() => orderConfig.update(c => ({ ...c, hardwareId: hw.id }))}
       >
         <div class="hardware-samples">
           <div class="hw-ring" style="background: linear-gradient(145deg, {hw.hex}, {adjustColor(hw.hex, -20)}); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.2);">
@@ -49,8 +49,8 @@
           {/if}
         </div>
       </div>
-      {#if soldOut && $orderConfig.hardwareId === hw.id && alternatives}
-        <div class="alternative-panel" colspan="2">
+      {#if soldOut && alternatives}
+        <div class="alternative-panel">
           <div class="alternative-header">
             <span class="alternative-icon">🔄</span>
             <span class="alternative-title">该五金已售罄，推荐以下替代：</span>
@@ -91,7 +91,7 @@
       {@const alternatives = soldOutAlternatives.thread[thread.id]}
       <div
         class="option-card thread-card {$orderConfig.threadColorId === thread.id ? 'selected' : ''} {soldOut ? 'sold-out' : ''}"
-        on:click={() => !soldOut && orderConfig.update(c => ({ ...c, threadColorId: thread.id }))}
+        on:click={() => orderConfig.update(c => ({ ...c, threadColorId: thread.id }))}
       >
         <div class="thread-preview" style="background: {thread.hex}">
           <div class="thread-stitch" style="background: {adjustColor(thread.hex, 20)};"></div>
@@ -115,8 +115,8 @@
           {/if}
         </div>
       </div>
-      {#if soldOut && $orderConfig.threadColorId === thread.id && alternatives}
-        <div class="alternative-panel" colspan="3">
+      {#if soldOut && alternatives}
+        <div class="alternative-panel">
           <div class="alternative-header">
             <span class="alternative-icon">🔄</span>
             <span class="alternative-title">该缝线颜色已售罄，推荐以下替代：</span>

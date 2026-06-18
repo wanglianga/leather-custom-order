@@ -11,6 +11,10 @@
     orderConfig.update(c => ({ ...c, engravingMargin: parseInt(e.target.value) }));
   }
 
+  function handleEngravingInput(e) {
+    orderConfig.update(c => ({ ...c, engravingText: e.target.value }));
+  }
+
   function getSuggestionIcon(type) {
     switch (type) {
       case 'fontSize': return '🔤';
@@ -62,8 +66,8 @@
       type="text"
       class="form-input engraving-input {$engravingBoundaryCheck.isOverflowing || !$engravingCharValidation.isValid ? 'input-warning' : ''}"
       placeholder="输入您想刻的文字（中英文、数字均可）"
-      bind:value={$orderConfig.engravingText}
-      maxlength={maxChars}
+      value={$orderConfig.engravingText}
+      on:input={handleEngravingInput}
     />
     <div class="engraving-tip">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>

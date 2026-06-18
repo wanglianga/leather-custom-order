@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import { products, leatherColors, textures, hardwares, fonts, engravingDepths, giftBoxes, pickupMethods, threadColors, productEngravingAreas, engravingRestrictedChars, engravingSpecialChars, materialStock, soldOutAlternatives, colorCombinationTips, leatherTypes } from '../data/options.js';
+import { products, leatherColors, textures, hardwares, fonts, engravingDepths, engravingPositions, giftBoxes, pickupMethods, threadColors, productEngravingAreas, engravingRestrictedChars, engravingSpecialChars, materialStock, soldOutAlternatives, colorCombinationTips, leatherTypes } from '../data/options.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const PRODUCT_INFO = {
@@ -74,8 +74,9 @@ export function checkEngravingBoundary(productId, positionId, text, fontSize, ma
 export function validateEngravingChars(text) {
   const issues = [];
   const warnings = [];
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
+  const chars = Array.from(text);
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
     if (engravingRestrictedChars.test(char)) {
       issues.push({ char, index: i, type: 'restricted', message: `字符 "${char}" 不适合压印，请替换或删除` });
     }

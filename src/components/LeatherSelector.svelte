@@ -46,7 +46,7 @@
           {@const alternatives = getLeatherAlternatives(color.id)}
           <div
             class="color-swatch {$orderConfig.leatherColorId === color.id ? 'selected' : ''} {soldOut ? 'sold-out' : ''}"
-            on:click={() => !soldOut && orderConfig.update(c => ({ ...c, leatherColorId: color.id }))}
+            on:click={() => orderConfig.update(c => ({ ...c, leatherColorId: color.id }))}
             title="{color.name} {color.price > 0 ? '+¥' + color.price : ''} {soldOut ? '(已售罄)' : ''}"
           >
             <div class="color-circle" style="background: {color.hex}">
@@ -70,8 +70,8 @@
               </div>
             {/if}
           </div>
-          {#if soldOut && $orderConfig.leatherColorId === color.id && alternatives}
-            <div class="alternative-panel" colspan="3">
+          {#if soldOut && alternatives}
+            <div class="alternative-panel">
               <div class="alternative-header">
                 <span class="alternative-icon">🔄</span>
                 <span class="alternative-title">该颜色已售罄，推荐以下替代：</span>
