@@ -159,14 +159,15 @@ docker compose down
 wl-330/
 ├── src/
 │   ├── components/
-│   │   ├── CustomerPage.svelte      # 顾客端主页面（分步向导）
+│   │   ├── CustomerPage.svelte      # 顾客端主页面（分步向导 + 确认弹窗增强）
 │   │   ├── StaffPage.svelte         # 店员端工作台（3大模块）
 │   │   ├── ProductSelector.svelte   # 版型选择器
 │   │   ├── LeatherSelector.svelte   # 皮革颜色+纹理选择器
 │   │   ├── HardwareSelector.svelte  # 五金选择器
 │   │   ├── EngravingConfig.svelte   # 刻字内容/字体/深浅/位置/边距
 │   │   ├── PackagingSelector.svelte # 礼盒+取货+联系信息
-│   │   └── ProductPreview.svelte    # ⭐ 核心 SVG 实时预览组件
+│   │   ├── OrderChecklist.svelte    # ⭐ 定制清单卡片 + 历史参考 + 工坊备注提示
+│   │   └── ProductPreview.svelte    # SVG 实时预览组件
 │   ├── data/
 │   │   └── options.js               # 所有选项配置（皮革/五金/字体/库存等）
 │   ├── store/

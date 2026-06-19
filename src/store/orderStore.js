@@ -228,55 +228,270 @@ export const materialAvailability = derived(orderConfig, $c => {
 export const colorCombinationTip = derived(orderConfig, $c => {
   return getColorCombinationTip($c.leatherColorId, $c.hardwareId, $c.threadColorId);
 });
+export const workshopNotes = [
+  {
+    id: 'WN001',
+    matchRules: { engravingFontId: 'script', leatherColorId: 'tan' },
+    title: '手写体在蜜蜡棕皮革上压印较浅',
+    content: '手写体在蜜蜡棕植鞣革上压印效果偏浅，建议：1）换用深压印模式；2）搭配深色缝线形成对比；3）考虑换成衬线体或无衬线体以获得更清晰效果。',
+    severity: 'warning',
+    suggestion: '建议换用衬线体或加深压印深度'
+  },
+  {
+    id: 'WN002',
+    matchRules: { engravingFontId: 'stamp', engravingDepthId: 'light' },
+    title: '印章体浅压印辨识度低',
+    content: '印章体笔画较粗，浅压印模式下容易糊成一团，建议使用中压印或深压印以保证字迹清晰。',
+    severity: 'warning',
+    suggestion: '建议提升压印深度至中等或深压印'
+  },
+  {
+    id: 'WN003',
+    matchRules: { leatherColorId: 'navy', hardwareId: 'gold' },
+    title: '深海蓝配金色五金易产生色差',
+    content: '深海蓝荔枝纹与金色五金搭配在强光下对比过强，部分顾客反馈略显突兀。建议搭配亮银色或枪黑色五金获得更协调的视觉效果。',
+    severity: 'info',
+    suggestion: '可考虑搭配亮银色或枪黑色五金'
+  },
+  {
+    id: 'WN004',
+    matchRules: { textureId: 'croc', engravingPositionId: 'center' },
+    title: '鳄鱼纹居中刻字效果欠佳',
+    content: '鳄鱼纹表面凹凸不平，居中大面积刻字容易因纹理起伏导致笔画深浅不一。建议选择角落位置（如右下角、左上角），或换用平纹皮革。',
+    severity: 'warning',
+    suggestion: '建议换至角落位置或改用平纹皮革'
+  },
+  {
+    id: 'WN005',
+    matchRules: { engravingTextPattern: 'chinese_many' },
+    title: '中文字符压印提示',
+    content: '中文字符笔画复杂，当刻字超过4个汉字时建议缩小字号或拆行，以保证每个字清晰可辨。',
+    severity: 'info',
+    suggestion: '可适当缩小字号或拆分为两行'
+  }
+];
+
+function hasChinese(str) {
+  return /[\u4e00-\u9fa5]/.test(str || '');
+}
+
+function countChinese(str) {
+  const matches = (str || '').match(/[\u4e00-\u9fa5]/g);
+  return matches ? matches.length : 0;
+}
+
+export function matchWorkshopNotes(config) {
+  const matched = [];
+  for (const note of workshopNotes) {
+    const rules = note.matchRules;
+    let match = true;
+    for (const key of Object.keys(rules)) {
+      if (key === 'engravingTextPattern') {
+        if (rules[key] === 'chinese_many') {
+          if (countChinese(config.engravingText) < 4) {
+            match = false;
+            break;
+          }
+        }
+      } else if (config[key] !== rules[key]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) matched.push(note);
+  }
+  return matched;
+}
+
 export const orders = writable([
- {
- id: 'ORD-' + Date.now(),
- orderNumber: 'LV2025' + String(Date.now()).slice(-6),
- ...createInitialConfig(),
- engravingText: 'M.Love',
- engravingFontId: 'script',
- threadColorId: 'crimson',
- customerName: '李小姐',
- customerPhone: '138****6688',
- specialNote: '请在七夕前完成，送给女朋友的生日礼物~',
- status: 'crafting',
- createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
- progress: 40
- },
- {
- id: 'ORD-' + (Date.now() + 1),
- orderNumber: 'LV2025' + String(Date.now() + 1).slice(-6),
- ...createInitialConfig(),
- productId: 'wallet',
- leatherColorId: 'black',
- hardwareId: 'gunmetal',
- threadColorId: 'black',
- engravingText: '2025.08.15',
- engravingPositionId: 'inside',
- customerName: '王先生',
- customerPhone: '139****1234',
- giftBoxId: 'premium',
- pickupMethodId: 'express',
- specialNote: '字体要加粗一些，谢谢',
- status: 'queued',
- createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
- progress: 0
- },
- {
- id: 'ORD-' + (Date.now() + 2),
- orderNumber: 'LV2025' + String(Date.now() + 2).slice(-6),
- ...createInitialConfig(),
- productId: 'keychain',
- leatherColorId: 'burgundy',
- threadColorId: 'brown',
- engravingText: 'Dad',
- customerName: '陈先生',
- customerPhone: '137****8899',
- status: 'completed',
- createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
- progress: 100
- }
+  {
+    id: 'ORD-' + Date.now(),
+    orderNumber: 'LV2025' + String(Date.now()).slice(-6),
+    ...createInitialConfig(),
+    engravingText: 'M.Love',
+    engravingFontId: 'script',
+    threadColorId: 'crimson',
+    customerName: '李小姐',
+    customerPhone: '138****6688',
+    specialNote: '请在七夕前完成，送给女朋友的生日礼物~',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=300&fit=crop',
+    workshopNote: '手写体在蜜蜡棕上压印偏浅，已调整为深压印'
+  },
+  {
+    id: 'ORD-' + (Date.now() + 1),
+    orderNumber: 'LV2025' + String(Date.now() + 1).slice(-6),
+    ...createInitialConfig(),
+    productId: 'wallet',
+    leatherColorId: 'black',
+    textureId: 'smooth',
+    hardwareId: 'gunmetal',
+    threadColorId: 'black',
+    engravingText: '2025.08.15',
+    engravingPositionId: 'inside',
+    customerName: '王先生',
+    customerPhone: '139****1234',
+    giftBoxId: 'premium',
+    pickupMethodId: 'express',
+    specialNote: '字体要加粗一些，谢谢',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: 'https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=400&h=300&fit=crop',
+    workshopNote: null
+  },
+  {
+    id: 'ORD-' + (Date.now() + 2),
+    orderNumber: 'LV2025' + String(Date.now() + 2).slice(-6),
+    ...createInitialConfig(),
+    productId: 'keychain',
+    leatherColorId: 'tan',
+    textureId: 'smooth',
+    hardwareId: 'gold',
+    threadColorId: 'brown',
+    engravingText: 'Dad',
+    engravingFontId: 'serif',
+    customerName: '陈先生',
+    customerPhone: '137****8899',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&h=300&fit=crop',
+    workshopNote: null
+  },
+  {
+    id: 'ORD-' + (Date.now() + 3),
+    orderNumber: 'LV2025' + String(Date.now() + 3).slice(-6),
+    ...createInitialConfig(),
+    productId: 'cardholder',
+    leatherColorId: 'tan',
+    textureId: 'smooth',
+    hardwareId: 'gold',
+    threadColorId: 'brown',
+    engravingText: '李小姐',
+    engravingFontId: 'serif',
+    customerName: '李小姐',
+    customerPhone: '138****6688',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=300&fit=crop',
+    workshopNote: null
+  },
+  {
+    id: 'ORD-' + (Date.now() + 4),
+    orderNumber: 'LV2025' + String(Date.now() + 4).slice(-6),
+    ...createInitialConfig(),
+    productId: 'cardholder',
+    leatherColorId: 'burgundy',
+    textureId: 'grained',
+    hardwareId: 'gold',
+    threadColorId: 'crimson',
+    engravingText: 'Happy',
+    engravingFontId: 'script',
+    customerName: '李小姐',
+    customerPhone: '138****6688',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&h=300&fit=crop',
+    workshopNote: '深酒红配手写体效果不错，顾客满意'
+  },
+  {
+    id: 'ORD-' + (Date.now() + 5),
+    orderNumber: 'LV2025' + String(Date.now() + 5).slice(-6),
+    ...createInitialConfig(),
+    engravingText: 'Forever',
+    engravingFontId: 'script',
+    customerName: '李小姐',
+    customerPhone: '138****6688',
+    status: 'crafting',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 40,
+    referenceImage: null,
+    workshopNote: null
+  },
+  {
+    id: 'ORD-' + (Date.now() + 6),
+    orderNumber: 'LV2025' + String(Date.now() + 6).slice(-6),
+    ...createInitialConfig(),
+    productId: 'wallet',
+    leatherColorId: 'black',
+    hardwareId: 'gunmetal',
+    threadColorId: 'black',
+    engravingText: '2025.08.15',
+    engravingPositionId: 'inside',
+    customerName: '王先生',
+    customerPhone: '139****1234',
+    giftBoxId: 'premium',
+    pickupMethodId: 'express',
+    specialNote: '字体要加粗一些，谢谢',
+    status: 'queued',
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    progress: 0,
+    referenceImage: null,
+    workshopNote: null
+  },
+  {
+    id: 'ORD-' + (Date.now() + 7),
+    orderNumber: 'LV2025' + String(Date.now() + 7).slice(-6),
+    ...createInitialConfig(),
+    productId: 'keychain',
+    leatherColorId: 'burgundy',
+    threadColorId: 'brown',
+    engravingText: 'Dad',
+    customerName: '陈先生',
+    customerPhone: '137****8899',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    progress: 100,
+    referenceImage: null,
+    workshopNote: null
+  }
 ]);
+
+export const customerHistory = derived([orderConfig, orders], ([$c, $orders]) => {
+  if (!$c.customerPhone && !$c.customerName) return [];
+  return $orders.filter(o => {
+    const phoneMatch = $c.customerPhone && o.customerPhone === $c.customerPhone;
+    const nameMatch = $c.customerName && o.customerName === $c.customerName;
+    return phoneMatch || nameMatch;
+  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+});
+
+export const relatedHistoryOrders = derived([orderConfig, customerHistory], ([$c, $history]) => {
+  const sameProduct = $history.filter(o => o.productId === $c.productId && o.progress === 100);
+  const sameLeather = $history.filter(o => o.leatherColorId === $c.leatherColorId && o.progress === 100 && o.productId !== $c.productId);
+  return { sameProduct, sameLeather };
+});
+
+export const matchedWorkshopNotes = derived(orderConfig, $c => matchWorkshopNotes($c));
+
+export function getDiffFromHistory(currentConfig, historyOrder) {
+  const diffs = [];
+  const fields = [
+    { key: 'leatherColorId', label: '皮革颜色' },
+    { key: 'textureId', label: '皮革纹理' },
+    { key: 'hardwareId', label: '五金配件' },
+    { key: 'threadColorId', label: '缝线颜色' },
+    { key: 'engravingFontId', label: '刻字字体' },
+    { key: 'engravingPositionId', label: '刻字位置' },
+    { key: 'engravingDepthId', label: '压印深浅' },
+    { key: 'giftBoxId', label: '礼盒包装' },
+    { key: 'pickupMethodId', label: '取货方式' }
+  ];
+  for (const f of fields) {
+    if (currentConfig[f.key] !== historyOrder[f.key]) {
+      diffs.push({ field: f.key, label: f.label, current: currentConfig[f.key], previous: historyOrder[f.key] });
+    }
+  }
+  if (currentConfig.engravingText !== historyOrder.engravingText) {
+    diffs.push({ field: 'engravingText', label: '刻字内容', current: currentConfig.engravingText || '(无)', previous: historyOrder.engravingText || '(无)' });
+  }
+  return diffs;
+}
 export function createOrder(config) {
  const newOrder = {
  id: 'ORD-' + Date.now(),

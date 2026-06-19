@@ -2,7 +2,10 @@
   import {
     orderConfig, totalPrice, estimatedCompletion,
     createOrder, resetOrderConfig, estimateCompletionDate,
-    engravingBoundaryCheck, engravingCharValidation, materialAvailability
+    engravingBoundaryCheck, engravingCharValidation, materialAvailability,
+    matchedWorkshopNotes, selectedProduct, selectedLeather, selectedTexture,
+    selectedHardware, selectedThread, selectedFont, selectedDepth,
+    selectedGiftBox, selectedPickup, selectedLeatherType
   } from '../store/orderStore.js';
   import ProductPreview from './ProductPreview.svelte';
   import ProductSelector from './ProductSelector.svelte';
@@ -10,6 +13,7 @@
   import HardwareSelector from './HardwareSelector.svelte';
   import EngravingConfig from './EngravingConfig.svelte';
   import PackagingSelector from './PackagingSelector.svelte';
+  import OrderChecklist from './OrderChecklist.svelte';
 
   let showConfirmModal = false;
   let showSuccessModal = false;
@@ -153,6 +157,9 @@
 
       <div class="step-section {currentStep === 3 ? 'active' : ''}">
         <PackagingSelector />
+        <div class="checklist-wrapper">
+          <OrderChecklist onJumpToStep={(step) => { currentStep = step; window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        </div>
       </div>
 
       <div class="sticky-footer">
@@ -188,13 +195,13 @@
 
   {#if showConfirmModal}
     <div class="modal-overlay" on:click={() => showConfirmModal = false}>
-      <div class="modal-content confirm-modal" on:click|stopPropagation>
+      <div class="modal-content confirm-modal large" on:click|stopPropagation>
         <div class="modal-header">
           <h3>📋 订单确认</h3>
           <button class="modal-close" on:click={() => showConfirmModal = false}>✕</button>
         </div>
         <div class="modal-body">
-          {#if engravingWarnings.length > 0 || materialWarnings.length > 0}
+          {#if engravingWarnings.length > 0 || materialWarnings.length > 0 || $matchedWorkshopNotes.length > 0}
             <div class="order-warnings">
               {#each engravingWarnings as warning}
                 <div class="alert {warning.type === 'error' ? 'alert-danger' : 'alert-warning'}">
@@ -208,35 +215,109 @@
                   <span class="alert-text">{warning.message}</span>
                 </div>
               {/each}
+              {#each $matchedWorkshopNotes as note}
+                <div class="alert alert-warning">
+                  <span class="alert-icon">{note.severity === 'warning' ? '⚠️' : '💡'}</span>
+                  <span class="alert-text">
+                    <strong>{note.title}</strong><br>
+                    {note.suggestion}
+                  </span>
+                </div>
+              {/each}
             </div>
           {/if}
-          <div class="confirm-preview">
-            <ProductPreview compact={true} />
-          </div>
-          <div class="confirm-details">
-            <div class="detail-item">
-              <span class="detail-label">顾客姓名</span>
-              <span class="detail-value">{$orderConfig.customerName}</span>
+
+          <div class="confirm-layout">
+            <div class="confirm-preview">
+              <ProductPreview compact={true} />
             </div>
-            <div class="detail-item">
-              <span class="detail-label">联系电话</span>
-              <span class="detail-value">{$orderConfig.customerPhone}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">取货方式</span>
-              <span class="detail-value">{$orderConfig.pickupMethodId === 'store' ? '门店自提' : $orderConfig.pickupMethodId === 'express' ? '顺丰快递' : '同城闪送'}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">预计完工</span>
-              <span class="detail-value highlight-green">{formatCompletion($estimatedCompletion)}</span>
-            </div>
-            {#if $orderConfig.specialNote}
-              <div class="detail-item note">
-                <span class="detail-label">特殊备注</span>
-                <span class="detail-value">{$orderConfig.specialNote}</span>
+
+            <div class="confirm-details">
+              <div class="detail-group-title">定制参数</div>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">版型</span>
+                  <span class="detail-value">{$selectedProduct?.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">皮革</span>
+                  <span class="detail-value">
+                    {#if $selectedLeather}
+                      <span class="color-dot" style="background: {$selectedLeather.hex}"></span>
+                      {$selectedLeatherType?.name} · {$selectedLeather.name}
+                    {/if}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">纹理</span>
+                  <span class="detail-value">{$selectedTexture?.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">五金</span>
+                  <span class="detail-value">
+                    {#if $selectedHardware}
+                      <span class="color-dot" style="background: {$selectedHardware.hex}"></span>
+                      {$selectedHardware.name}
+                    {/if}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">缝线</span>
+                  <span class="detail-value">
+                    {#if $selectedThread}
+                      <span class="color-dot" style="background: {$selectedThread.hex}"></span>
+                      {$selectedThread.name}
+                    {/if}
+                  </span>
+                </div>
+                {#if $orderConfig.engravingText}
+                  <div class="detail-item full">
+                    <span class="detail-label">刻字内容</span>
+                    <span class="detail-value highlight-engraving">「{$orderConfig.engravingText}」</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">字体</span>
+                    <span class="detail-value">{$selectedFont?.name}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">压印</span>
+                    <span class="detail-value">{$selectedDepth?.name}</span>
+                  </div>
+                {/if}
+                <div class="detail-item">
+                  <span class="detail-label">礼盒</span>
+                  <span class="detail-value">{$selectedGiftBox?.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">取货</span>
+                  <span class="detail-value">{$selectedPickup?.name}</span>
+                </div>
               </div>
-            {/if}
+
+              <div class="detail-group-title" style="margin-top: 14px;">订单信息</div>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">顾客姓名</span>
+                  <span class="detail-value">{$orderConfig.customerName}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">联系电话</span>
+                  <span class="detail-value">{$orderConfig.customerPhone}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">预计完工</span>
+                  <span class="detail-value highlight-green">{formatCompletion($estimatedCompletion)}</span>
+                </div>
+                {#if $orderConfig.specialNote}
+                  <div class="detail-item full note">
+                    <span class="detail-label">特殊备注</span>
+                    <span class="detail-value">{$orderConfig.specialNote}</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
           </div>
+
           <div class="confirm-total">
             <span>定制总价</span>
             <span class="total-price">¥{$totalPrice}</span>
@@ -246,7 +327,7 @@
           </p>
         </div>
         <div class="modal-footer">
-          <button class="btn-secondary" on:click={() => showConfirmModal = false}>
+          <button class="btn-secondary" on:click={() => { showConfirmModal = false; currentStep = 3; }}>
             返回修改
           </button>
           <button class="btn-primary" on:click={confirmOrder} disabled={!canSubmit}>
@@ -762,5 +843,99 @@
     font-size: 13px;
     color: var(--color-text-light);
     padding: 6px 0;
+  }
+
+  .checklist-wrapper {
+    margin-top: 28px;
+  }
+
+  .confirm-modal.large {
+    max-width: 680px;
+  }
+
+  .confirm-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .confirm-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .confirm-layout .confirm-preview {
+    margin-bottom: 0;
+  }
+
+  .detail-group-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    background: var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 1px;
+    overflow: hidden;
+  }
+
+  .detail-grid .detail-item {
+    padding: 8px 10px;
+    background: var(--color-surface);
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .detail-grid .detail-item.full {
+    grid-column: 1 / -1;
+  }
+
+  .detail-grid .detail-label {
+    font-size: 10px;
+    color: var(--color-text-light);
+  }
+
+  .detail-grid .detail-value {
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .highlight-engraving {
+    color: var(--color-primary);
+    font-style: italic;
+  }
+
+  .alert-text strong {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 </style>
